@@ -1,5 +1,6 @@
 package org.tranphucbol.todo;
 
+import android.app.DatePickerDialog;
 import android.arch.persistence.room.Room;
 import android.content.Intent;
 import android.os.Bundle;
@@ -20,11 +21,18 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
+import android.widget.DatePicker;
 import android.widget.ListView;
 
 import org.tranphucbol.todo.Model.MTask;
 
+import java.text.DateFormatSymbols;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,8 +43,15 @@ public class MainActivity extends AppCompatActivity {
 
     public static final int REFRESH = 1;
     public static final int RELOAD = 2;
+    public static final int TITLE = 3;
 
+    private String title;
+    private Toolbar toolbar;
     private ToDoListAdapter toDoListAdapter;
+
+    Locale locale = new Locale("vi", "VN");
+    DateFormatSymbols dateFormatSymbols = new DateFormatSymbols(locale);
+
 
     private Handler mHandler = new Handler() {
         @Override
@@ -46,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
             switch (code) {
                 case REFRESH:
                     toDoListAdapter.notifyDataSetChanged();
+                    break;
+                case TITLE:
+                    toolbar.setSubtitle(title);
                     break;
                 default:
                     toDoListAdapter = new ToDoListAdapter(tasks, MainActivity.this, mHandler);
@@ -59,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -69,6 +87,8 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+
+        Locale.setDefault(locale);
 
         mTaskDatabase = Room.databaseBuilder(getApplicationContext(),
                 MTaskDatabase.class, DATABASE_NAME)
@@ -86,6 +106,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        dateFormatSymbols.setWeekdays(new String[]{
+                "Unused",
+                "Chủ nhật",
+                "Thứ hai",
+                "Thứ ba",
+                "Thứ tư",
+                "Thứ năm",
+                "Thứ sáu",
+                "Thứ bảy",
+        });
     }
 
     @Override
@@ -94,8 +124,22 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                tasks = mTaskDatabase.mTaskDAO().getAll();
-                mHandler.obtainMessage(1, RELOAD).sendToTarget();
+                final Calendar c = Calendar.getInstance();
+                SimpleDateFormat ft = new SimpleDateFormat("dd-MM-yyyy", dateFormatSymbols);
+                Date start, end;
+                try {
+                    start = ft.parse(ft.format(new Date()));
+                    c.setTime(start);
+                    c.add(Calendar.MINUTE, 23 * 60 + 59);
+                    end = c.getTime();
+                    tasks = mTaskDatabase.mTaskDAO().getAllByDate(start, end);
+                    ft = new SimpleDateFormat("EEEEE, dd 'tháng' M", dateFormatSymbols);
+                    title = ft.format(new Date());
+                    mHandler.obtainMessage(1, TITLE).sendToTarget();
+                    mHandler.obtainMessage(1, RELOAD).sendToTarget();
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
             }
         }).start();
     }
@@ -117,6 +161,39 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            final Calendar c = Calendar.getInstance();
+            int mYear = c.get(Calendar.YEAR);
+            int mMonth = c.get(Calendar.MONTH);
+            int mDay = c.get(Calendar.DAY_OF_MONTH);
+
+
+            DatePickerDialog datePickerDialog = new DatePickerDialog(MainActivity.this,
+                    new DatePickerDialog.OnDateSetListener() {
+                        @Override
+                        public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
+                            String date = String.format("%02d-%02d-%04d", dayOfMonth, monthOfYear + 1, year);
+                            SimpleDateFormat ft = new SimpleDateFormat("dd-MM-yyyy",  dateFormatSymbols);
+                            try {
+                                final Date start = ft.parse(date);
+                                c.setTime(start);
+                                c.add(Calendar.MINUTE, 23 * 60 + 59);
+                                final Date end = c.getTime();
+                                new Thread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        tasks = mTaskDatabase.mTaskDAO().getAllByDate(start, end);
+                                        SimpleDateFormat ft = new SimpleDateFormat("EEEEE, dd 'tháng' M", dateFormatSymbols);
+                                        title = ft.format(start);
+                                        mHandler.obtainMessage(1, TITLE).sendToTarget();
+                                        mHandler.obtainMessage(1, RELOAD).sendToTarget();
+                                    }
+                                }).start();
+                            } catch (ParseException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }, mYear, mMonth, mDay);
+            datePickerDialog.show();
             return true;
         }
 

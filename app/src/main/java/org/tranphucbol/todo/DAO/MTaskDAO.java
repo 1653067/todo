@@ -8,6 +8,7 @@ import android.arch.persistence.room.Update;
 
 import org.tranphucbol.todo.Model.MTask;
 
+import java.util.Date;
 import java.util.List;
 
 @Dao
@@ -18,6 +19,8 @@ public interface MTaskDAO {
     MTask getById(int taskId);
     @Query("SELECT * FROM MTask")
     List<MTask> getAll();
+    @Query("SELECT * FROM MTask WHERE createdOn BETWEEN :start AND :end")
+    List<MTask> getAllByDate(Date start, Date end);
     @Update
     void updateMTask(MTask task);
     @Delete

@@ -7,30 +7,23 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.NavigationView;
-import android.support.v4.view.GravityCompat;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.CheckBox;
-import android.widget.CheckedTextView;
 import android.widget.DatePicker;
-import android.widget.ListView;
 
 import org.tranphucbol.todo.Model.MTask;
 
 import java.text.DateFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -44,12 +37,12 @@ public class MainActivity extends AppCompatActivity {
     private List<MTask> tasks;
 
     public static final int REFRESH = 1;
-    public static final int RELOAD = 2;
-    public static final int TITLE = 3;
+    public static final int TITLE = 2;
+    public static final int DELETE_ITEM = 3;
 
     private String title;
     private Toolbar toolbar;
-    private RecyclerViewAdapter toDoListAdapter;
+    private ToDoRecyclerViewAdapter toDoListAdapter;
 
     Locale locale = new Locale("vi", "VN");
     DateFormatSymbols dateFormatSymbols = new DateFormatSymbols(locale);
@@ -67,9 +60,10 @@ public class MainActivity extends AppCompatActivity {
                 case TITLE:
                     toolbar.setSubtitle(title);
                     break;
+                case DELETE_ITEM:
+                    toDoListAdapter.notifyItemRemoved(msg.getData().getInt("POSITION"));
+                    break;
                 default:
-                    toDoListAdapter = new RecyclerViewAdapter(tasks, MainActivity.this, mHandler);
-                    todoList.setAdapter(toDoListAdapter);
                     break;
             }
         }
@@ -102,6 +96,16 @@ public class MainActivity extends AppCompatActivity {
 
         todoList = findViewById(R.id.todoList);
 
+        toDoListAdapter = new ToDoRecyclerViewAdapter(new ArrayList<MTask>(), MainActivity.this, mHandler);
+        todoList.setAdapter(toDoListAdapter);
+
+        RecyclerView.ItemDecoration itemDecoration = new
+                DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
+        todoList.addItemDecoration(itemDecoration);
+
+        ItemTouchHelper itemTouchHelper = new
+                ItemTouchHelper(new SwipeToDeleteCallback(toDoListAdapter));
+        itemTouchHelper.attachToRecyclerView(todoList);
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
@@ -135,10 +139,11 @@ public class MainActivity extends AppCompatActivity {
                     c.add(Calendar.MINUTE, 23 * 60 + 59);
                     end = c.getTime();
                     tasks = mTaskDatabase.mTaskDAO().getAllByDate(start, end);
+                    toDoListAdapter.setmTasks(tasks);
                     ft = new SimpleDateFormat("EEEEE, dd 'tháng' M", dateFormatSymbols);
                     title = ft.format(new Date());
                     mHandler.obtainMessage(1, TITLE).sendToTarget();
-                    mHandler.obtainMessage(1, RELOAD).sendToTarget();
+                    mHandler.obtainMessage(1, REFRESH).sendToTarget();
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
@@ -180,12 +185,13 @@ public class MainActivity extends AppCompatActivity {
                                     @Override
                                     public void run() {
                                         tasks = mTaskDatabase.mTaskDAO().getAllByDate(start, end);
+                                        toDoListAdapter.setmTasks(tasks);
                                         SimpleDateFormat ft = new SimpleDateFormat("EEEEE, dd 'tháng' M", dateFormatSymbols);
                                         title = ft.format(start);
                                         //send message to change subtitle - date
                                         mHandler.obtainMessage(1, TITLE).sendToTarget();
                                         //send message to reload data of date
-                                        mHandler.obtainMessage(1, RELOAD).sendToTarget();
+                                        mHandler.obtainMessage(1, REFRESH).sendToTarget();
                                     }
                                 }).start();
                             } catch (ParseException e) {

@@ -11,6 +11,7 @@
     android:paddingRight="0dp"
     android:focusable="false"
     android:background="#fff"
+
     android:focusableInTouchMode="false">
 
     <CheckBox
@@ -45,7 +46,8 @@
         android:layout_alignParentRight="true"
         app:iconTint="@color/colorText"
         android:focusable="false"
-        android:focusableInTouchMode="false"/>
+        android:focusableInTouchMode="false"
+        android:visibility="invisible"/>
 
 </RelativeLayout>
 </android.support.design.widget.CoordinatorLayout>

@@ -5,7 +5,9 @@ import android.app.PendingIntent;
 import android.arch.persistence.room.Room;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.support.design.button.MaterialButton;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -18,7 +20,7 @@ import org.tranphucbol.todo.Model.MTask;
 
 import java.util.List;
 
-public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapter.RecyclerViewHolder>{
+public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerViewAdapter.RecyclerViewHolder> {
 
     private List<MTask> mTasks;
     private MTaskDatabase mTaskDatabase;
@@ -26,7 +28,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
     private Handler mHandler;
     private Context context;
 
-    public RecyclerViewAdapter(List<MTask> mTasks, Context context, Handler mHandler) {
+    public ToDoRecyclerViewAdapter(List<MTask> mTasks, Context context, Handler mHandler) {
         this.context = context;
         this.mHandler = mHandler;
         this.mTasks = mTasks;
@@ -93,6 +95,26 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
         });
     }
 
+    public void deleteItem(final int position) {
+        final MTask task = mTasks.get(position);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mTaskDatabase.mTaskDAO().deleteMTask(task);
+                mTasks.remove(task);
+                removeNotification(task.getTaskId());
+
+                Bundle data = new Bundle();
+                data.putInt("POSITION", position);
+
+                Message message = mHandler.obtainMessage(1, MainActivity.DELETE_ITEM);
+                message.setData(data);
+                message.sendToTarget();
+            }
+        }).start();
+
+    }
+
     @Override
     public int getItemCount() {
         return mTasks.size();
@@ -102,6 +124,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
         MaterialButton deleteBtn;
         TextView taskNameTxtv;
         CheckBox checkBox;
+
         public RecyclerViewHolder(View itemView) {
             super(itemView);
 
@@ -116,5 +139,13 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
         Intent notificationIntent = new Intent(context, AlarmReceiver.class);
         PendingIntent broadcast = PendingIntent.getBroadcast(context, id, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         alarmManager.cancel(broadcast);
+    }
+
+    public Context getContext() {
+        return context;
+    }
+
+    public void setmTasks(List<MTask> mTasks) {
+        this.mTasks = mTasks;
     }
 }

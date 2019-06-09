@@ -15,7 +15,7 @@
             android:layout_height="wrap_content"
             android:src="@drawable/delivery"
             android:layout_centerInParent="true" />
-        <ListView
+        <android.support.v7.widget.RecyclerView
             android:id="@+id/todoList"
             android:clickable="true"
             android:dividerHeight="3dp"

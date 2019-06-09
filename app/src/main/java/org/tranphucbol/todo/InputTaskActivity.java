@@ -149,7 +149,6 @@ public class InputTaskActivity extends AppCompatActivity {
                             public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
                                 date = String.format("%02d-%02d-%04d", dayOfMonth, monthOfYear + 1, year);
                                 dateBtn.setText(date);
-//                                date = dayOfMonth + "-" + (monthOfYear + 1) + "-" + year;
 
                             }
                         }, mYear, mMonth, mDay);
@@ -173,7 +172,6 @@ public class InputTaskActivity extends AppCompatActivity {
                                                   int minute) {
                                 time = String.format("%02d:%02d", hourOfDay, minute);
                                 timeBtn.setText(time);
-//                                time = hourOfDay + ":" + minute;
                             }
                         }, mHour, mMinute, true);
                 timePickerDialog.show();

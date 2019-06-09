@@ -12,6 +12,8 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -36,7 +38,7 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
-    private ListView todoList;
+    private RecyclerView todoList;
     private MTaskDatabase mTaskDatabase;
     private static final String DATABASE_NAME = "mtasks_db";
     private List<MTask> tasks;
@@ -47,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
 
     private String title;
     private Toolbar toolbar;
-    private ToDoListAdapter toDoListAdapter;
+    private RecyclerViewAdapter toDoListAdapter;
 
     Locale locale = new Locale("vi", "VN");
     DateFormatSymbols dateFormatSymbols = new DateFormatSymbols(locale);
@@ -66,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
                     toolbar.setSubtitle(title);
                     break;
                 default:
-                    toDoListAdapter = new ToDoListAdapter(tasks, MainActivity.this, mHandler);
+                    toDoListAdapter = new RecyclerViewAdapter(tasks, MainActivity.this, mHandler);
                     todoList.setAdapter(toDoListAdapter);
                     break;
             }
@@ -77,8 +79,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         toolbar = findViewById(R.id.toolbar);
+
         setSupportActionBar(toolbar);
+
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -96,15 +101,12 @@ public class MainActivity extends AppCompatActivity {
                 .build();
 
         todoList = findViewById(R.id.todoList);
-        todoList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, final int position, long id) {
-                Log.i("CLICK", "beng");
-                Intent intent = new Intent(MainActivity.this, InputTaskActivity.class);
-                intent.putExtra("taskId", tasks.get(position).getTaskId());
-                startActivity(intent);
-            }
-        });
+
+
+        LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
+        layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+
+        todoList.setLayoutManager(layoutManager);
 
         dateFormatSymbols.setWeekdays(new String[]{
                 "Unused",
@@ -154,12 +156,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             final Calendar c = Calendar.getInstance();
             int mYear = c.get(Calendar.YEAR);
@@ -184,7 +182,9 @@ public class MainActivity extends AppCompatActivity {
                                         tasks = mTaskDatabase.mTaskDAO().getAllByDate(start, end);
                                         SimpleDateFormat ft = new SimpleDateFormat("EEEEE, dd 'tháng' M", dateFormatSymbols);
                                         title = ft.format(start);
+                                        //send message to change subtitle - date
                                         mHandler.obtainMessage(1, TITLE).sendToTarget();
+                                        //send message to reload data of date
                                         mHandler.obtainMessage(1, RELOAD).sendToTarget();
                                     }
                                 }).start();

@@ -18,6 +18,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
+import android.widget.CheckBox;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.TimePicker;
@@ -35,7 +36,8 @@ public class InputTaskActivity extends AppCompatActivity {
     private MTaskDatabase mTaskDatabase;
     private static final String DATABASE_NAME = "mtasks_db";
     private MaterialButton createBtn, timeBtn, dateBtn, updateBtn, deleteBtn;
-    private EditText nameTxt, noteTxt;
+    private EditText nameTxt, noteTxt, timeTxt;
+    private CheckBox autoCheckBox, doneCheckBox;
     private String date;
     private String time;
     private SimpleDateFormat ft;
@@ -57,9 +59,13 @@ public class InputTaskActivity extends AppCompatActivity {
                     createBtn.setVisibility(View.INVISIBLE);
                     updateBtn.setVisibility(View.VISIBLE);
                     deleteBtn.setVisibility(View.VISIBLE);
+                    doneCheckBox.setVisibility(View.VISIBLE);
 
                     nameTxt.setText(task.getName());
                     noteTxt.setText(task.getContent());
+                    timeTxt.setText(Integer.toString(task.getBefore()));
+                    doneCheckBox.setChecked(task.isActive());
+                    autoCheckBox.setChecked(task.isAutoAdd());
 
                     if(task.getDeadline() != null) {
                         String[] d = ft.format(task.getDeadline()).split(" ");
@@ -107,6 +113,9 @@ public class InputTaskActivity extends AppCompatActivity {
         dateBtn = findViewById(R.id.dateBtn);
         nameTxt = findViewById(R.id.nameTxt);
         noteTxt = findViewById(R.id.noteTxt);
+        timeTxt = findViewById(R.id.timeTxt);
+        autoCheckBox = findViewById(R.id.autoCheckBox);
+        doneCheckBox = findViewById(R.id.doneCheckBox);
 
         ft = new SimpleDateFormat("dd-MM-yyyy HH:mm");
         if(taskId == -1) {
@@ -132,20 +141,25 @@ public class InputTaskActivity extends AppCompatActivity {
                         public void run() {
                             //check if date or time = null -> don't create notification for this task
                             if (date == null || time == null) {
-                                task = new MTask(nameTxt.getText().toString(), noteTxt.getText().toString());
+                                task = new MTask(nameTxt.getText().toString(), noteTxt.getText().toString(), autoCheckBox.isChecked());
                             } else {
                                 Date deadline;
                                 try {
                                     deadline = ft.parse(date + " " + time);
                                     if(deadline.before(new Date())) {
-                                        task = new MTask(nameTxt.getText().toString(), noteTxt.getText().toString());
+                                        task = new MTask(nameTxt.getText().toString(), noteTxt.getText().toString(), autoCheckBox.isChecked());
                                     } else
-                                        task = new MTask(nameTxt.getText().toString(), noteTxt.getText().toString(), deadline);
+                                        task = new MTask(nameTxt.getText().toString(), noteTxt.getText().toString(), deadline, autoCheckBox.isChecked());
                                 } catch (ParseException e) {
                                     e.printStackTrace();
                                 }
                             }
                             task.setDate(dateCreate);
+
+                            String beforeStr = timeTxt.getText().toString().length() == 0 ? "0" : timeTxt.getText().toString();
+                            int before = Integer.parseInt(beforeStr);
+                            task.setBefore(before);
+
                             long id = mTaskDatabase.mTaskDAO().insertOnlySingleMTask(task);
 
                             createNotification((int) id);
@@ -209,6 +223,13 @@ public class InputTaskActivity extends AppCompatActivity {
                     public void run() {
                         task.setName(nameTxt.getText().toString());
                         task.setContent(noteTxt.getText().toString());
+                        task.setActive(doneCheckBox.isChecked());
+                        task.setAutoAdd(autoCheckBox.isChecked());
+
+                        String beforeStr = timeTxt.getText().toString().length() == 0 ? "0" : timeTxt.getText().toString();
+                        int before = Integer.parseInt(beforeStr);
+                        task.setBefore(before);
+
 
                         if(date != null && time != null) {
                             try {
@@ -275,6 +296,7 @@ public class InputTaskActivity extends AppCompatActivity {
             PendingIntent broadcast = PendingIntent.getBroadcast(InputTaskActivity.this, id, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
             Calendar cal = Calendar.getInstance();
             int sec = (int) (task.getDeadline().getTime() - task.getCreatedOn().getTime()) / 1000;
+            sec -= task.getBefore() * 60;
             if(sec > 0) {
                 cal.add(Calendar.SECOND, sec);
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), broadcast);

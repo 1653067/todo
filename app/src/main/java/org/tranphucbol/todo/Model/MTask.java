@@ -18,10 +18,14 @@ public class MTask {
     Date date;
     Date createdOn;
     Date deadline;
+    boolean autoAdd;
+    int before;
 
     public MTask() {
         this.active = false;
         this.createdOn = new Date();
+        this.autoAdd = false;
+        this.before = 0;
     }
 
     public MTask(String name) {
@@ -29,21 +33,27 @@ public class MTask {
         this.content = "";
         this.active = false;
         this.createdOn = new Date();
+        this.autoAdd = false;
+        this.before = 0;
     }
 
-    public MTask(String name, String content) {
+    public MTask(String name, String content, boolean autoAdd) {
         this.name = name;
         this.content = content;
         this.active = false;
         this.createdOn = new Date();
+        this.autoAdd = autoAdd;
+        this.before = 0;
     }
 
-    public MTask(String name, String content, Date deadline) {
+    public MTask(String name, String content, Date deadline, boolean autoAdd) {
         this.name = name;
         this.content = content;
         this.deadline = deadline;
         this.active = false;
         this.createdOn = new Date();
+        this.autoAdd = autoAdd;
+        this.before = 0;
     }
 
     public int getTaskId() {
@@ -100,6 +110,22 @@ public class MTask {
 
     public void setDate(Date date) {
         this.date = date;
+    }
+
+    public boolean isAutoAdd() {
+        return autoAdd;
+    }
+
+    public int getBefore() {
+        return before;
+    }
+
+    public void setBefore(int before) {
+        this.before = before;
+    }
+
+    public void setAutoAdd(boolean autoAdd) {
+        this.autoAdd = autoAdd;
     }
 
     @Override

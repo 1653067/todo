@@ -53,7 +53,10 @@
                         android:id="@+id/nameTxt"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Tên tác vụ"
+                        android:drawableLeft="@drawable/ic_work_24dp"
+                        android:drawableTint="@color/colorText"
+                        android:drawablePadding="7dp"
+                        android:hint="TÊN TÁC VỤ"
                         android:inputType="textEmailAddress" />
 
                 </android.support.design.widget.TextInputLayout>
@@ -80,7 +83,10 @@
                         android:id="@+id/noteTxt"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Ghi chú"
+                        android:drawableLeft="@drawable/ic_local_offer_24dp"
+                        android:drawableTint="@color/colorText"
+                        android:drawablePadding="7dp"
+                        android:hint="GHI CHÚ"
                         android:inputType="textEmailAddress" />
 
                 </android.support.design.widget.TextInputLayout>
@@ -114,11 +120,68 @@
                 android:theme="@style/Theme.MaterialComponents.Light"
                 android:gravity="center" />
 
+            <android.support.design.card.MaterialCardView
+                android:id="@+id/timeCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#fff"
+                android:elevation="4dp"
+                android:layout_below="@id/timeBtn"
+                app:cardCornerRadius="4dp"
+                android:layout_marginTop="7dp"
+                app:contentPadding="10dp">
+
+                <android.support.design.widget.TextInputLayout
+                    android:id="@+id/timeWrapper"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:hintEnabled="false">
+
+                    <EditText
+                        android:id="@+id/timeTxt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:drawableLeft="@drawable/ic_restore_24dp"
+                        android:drawablePadding="7dp"
+                        android:drawableTint="@color/colorText"
+                        android:hint="THỜI GIAN NHẮC TRƯỚC (PHÚT)"
+                        android:inputType="number" />
+
+                </android.support.design.widget.TextInputLayout>
+            </android.support.design.card.MaterialCardView>
+
+            <RelativeLayout
+                android:id="@+id/checkBoxWrapper"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_below="@id/timeCard">
+                <CheckBox
+                    android:id="@+id/autoCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="16dp"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@color/colorText"
+                    android:text="TỰ ĐỘNG THÊM VÀO NGÀY MỚI"/>
+                <CheckBox
+                    android:id="@+id/doneCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toRightOf="@id/autoCheckBox"
+                    android:layout_marginRight="16dp"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@color/colorText"
+                    android:visibility="gone"
+                    android:text="ĐÃ LÀM"/>
+            </RelativeLayout>
+
+
             <android.support.design.button.MaterialButton
                 android:id="@+id/createBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@+id/timeBtn"
+                android:layout_below="@id/checkBoxWrapper"
                 android:layout_alignParentRight="true"
                 android:layout_marginTop="10dp"
                 android:backgroundTint="#fff"
@@ -132,7 +195,7 @@
                 android:id="@+id/deleteTaskBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@+id/timeBtn"
+                android:layout_below="@+id/checkBoxWrapper"
                 android:layout_alignParentRight="true"
                 android:layout_marginTop="10dp"
                 android:backgroundTint="#fff"
@@ -145,7 +208,7 @@
                 android:id="@+id/updateTaskBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@+id/timeBtn"
+                android:layout_below="@+id/checkBoxWrapper"
                 android:layout_toLeftOf="@id/deleteTaskBtn"
                 android:layout_marginTop="10dp"
                 android:backgroundTint="#fff"

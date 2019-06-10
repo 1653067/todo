@@ -23,6 +23,10 @@ public interface MTaskDAO {
     List<MTask> getAllByDateAndActive(Date date, boolean active);
     @Query("SELECT * FROM MTask WHERE date = :date")
     List<MTask> getAllByDate(Date date);
+    @Query("SELECT * FROM MTask WHERE date < :date AND active = :active AND autoAdd = :autoAdd")
+    List<MTask> getAllByDateLessThan(Date date, boolean active, boolean autoAdd);
+    @Update
+    void updateMTask(List<MTask> tasks);
     @Update
     void updateMTask(MTask task);
     @Delete

@@ -105,13 +105,13 @@ public class MainActivity extends AppCompatActivity {
                     Date date = ft.parse(dateStr);
                     Date current = ft.parse(ft.format(new Date()));
 
-                    if(date.equals(current) || date.after(current)) {
+//                    if(date.equals(current) || date.after(current)) {
                         Intent intent = new Intent(MainActivity.this, InputTaskActivity.class);
                         intent.putExtra("DATE", dateStr);
                         startActivity(intent);
-                    } else {
-                        Toast.makeText(MainActivity.this, "Bạn không thể tạo thêm công việc trong ngày này", Toast.LENGTH_SHORT).show();
-                    }
+//                    } else {
+//                        Toast.makeText(MainActivity.this, "Bạn không thể tạo thêm công việc trong ngày này", Toast.LENGTH_SHORT).show();
+//                    }
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
@@ -155,15 +155,41 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                ft.applyPattern("dd-MM-yyyy");
                 try {
-                    ft.applyPattern("dd-MM-yyyy");
-                    Date date = ft.parse(dateStr);
-                    tasks = mTaskDatabase.mTaskDAO().getAllByDate(date);
-                    toDoListAdapter.setmTasks(tasks);
-                    ft.applyPattern("EEEEE, dd 'tháng' M");
-                    title = ft.format(date);
-                    mHandler.obtainMessage(1, TITLE).sendToTarget();
-                    mHandler.obtainMessage(1, REFRESH).sendToTarget();
+                    Date current = ft.parse(ft.format(new Date()));
+                    List<MTask> taskAuto = mTaskDatabase.mTaskDAO().getAllByDateLessThan(current, false, true);
+
+                    //delete the task have a deadline less than current date
+                    //And update date for tasks have a deadline greater than current date or deadline null
+                    List<MTask> taskUnfinished = new ArrayList<>();
+                    for (MTask task : taskAuto) {
+                        if(task.getDeadline() != null && task.getDeadline().before(current)) {
+                            taskUnfinished.add(task);
+                        } else {
+                            task.setDate(current);
+                        }
+                    }
+                    taskAuto.remove(taskUnfinished);
+
+                    mTaskDatabase.mTaskDAO().updateMTask(taskAuto);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                ft.applyPattern("dd-MM-yyyy");
+                                Date date = ft.parse(dateStr);
+                                tasks = mTaskDatabase.mTaskDAO().getAllByDate(date);
+                                toDoListAdapter.setmTasks(tasks);
+                                ft.applyPattern("EEEEE, dd 'tháng' M");
+                                title = ft.format(date);
+                                mHandler.obtainMessage(1, TITLE).sendToTarget();
+                                mHandler.obtainMessage(1, REFRESH).sendToTarget();
+                            } catch (ParseException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }

@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.arch.persistence.room.Room;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -18,6 +19,9 @@ import android.widget.TextView;
 
 import org.tranphucbol.todo.Model.MTask;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerViewAdapter.RecyclerViewHolder> {
@@ -27,6 +31,9 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
     private static final String DATABASE_NAME = "mtasks_db";
     private Handler mHandler;
     private Context context;
+    private SimpleDateFormat ft;
+    private MTask recentlyDeletedItem;
+    private int recentlyDeletedItemPosition;
 
     public ToDoRecyclerViewAdapter(List<MTask> mTasks, Context context, Handler mHandler) {
         this.context = context;
@@ -37,6 +44,8 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
                 MTaskDatabase.class, DATABASE_NAME)
                 .fallbackToDestructiveMigration()
                 .build();
+
+        ft = new SimpleDateFormat("dd-MM-yyyy");
     }
 
     @Override
@@ -51,6 +60,20 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
         final MTask task = mTasks.get(i);
 
         holder.taskNameTxtv.setText(task.getName());
+
+        ft.applyPattern("HH:mm, EEE, dd MMM");
+        if(task.getDeadline() != null) {
+            holder.taskTimeTxtv.setVisibility(View.VISIBLE);
+            holder.taskTimeTxtv.setText(ft.format(task.getDeadline()));
+        } else {
+            holder.taskTimeTxtv.setVisibility(View.GONE);
+        }
+
+        if(holder.checkBox.isActivated()) {
+            holder.taskNameTxtv.setTypeface(holder.taskNameTxtv.getTypeface(), Typeface.ITALIC);
+        } else {
+            holder.taskNameTxtv.setTypeface(Typeface.DEFAULT);
+        }
         holder.checkBox.setChecked(task.isActive());
 
         //Set event click for item -> start activity update and remove task
@@ -79,20 +102,32 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
             }
         });
 
-        holder.deleteBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mTaskDatabase.mTaskDAO().deleteMTask(task);
-                        mTasks.remove(task);
-                        removeNotification(task.getTaskId());
-                        mHandler.obtainMessage(1, MainActivity.REFRESH).sendToTarget();
-                    }
-                }).start();
+        try {
+            ft.applyPattern("dd-MM-yyyy");
+            final Date current = ft.parse(ft.format(new Date()));
+            if(task.getDate().before(current))
+                holder.addBtn.setVisibility(View.VISIBLE);
+            else {
+                holder.addBtn.setVisibility(View.GONE);
             }
-        });
+            holder.addBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            task.setDate(current);
+                            mTaskDatabase.mTaskDAO().updateMTask(task);
+                            mTasks.remove(task);
+//                            removeNotification(task.getTaskId());
+                            mHandler.obtainMessage(1, MainActivity.REFRESH).sendToTarget();
+                        }
+                    }).start();
+                }
+            });
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
     }
 
     public void deleteItem(final int position) {
@@ -101,6 +136,9 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
             @Override
             public void run() {
                 mTaskDatabase.mTaskDAO().deleteMTask(task);
+                recentlyDeletedItem = task;
+                recentlyDeletedItemPosition = position;
+
                 mTasks.remove(task);
                 removeNotification(task.getTaskId());
 
@@ -121,15 +159,16 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
     }
 
     public class RecyclerViewHolder extends RecyclerView.ViewHolder {
-        MaterialButton deleteBtn;
-        TextView taskNameTxtv;
+        MaterialButton addBtn;
+        TextView taskNameTxtv, taskTimeTxtv;
         CheckBox checkBox;
 
         public RecyclerViewHolder(View itemView) {
             super(itemView);
 
-            deleteBtn = itemView.findViewById(R.id.deleteBtn);
+            addBtn = itemView.findViewById(R.id.addBtn);
             taskNameTxtv = itemView.findViewById(R.id.taskNameTxtv);
+            taskTimeTxtv = itemView.findViewById(R.id.taskTimeTxtv);
             checkBox = itemView.findViewById(R.id.checkBox);
         }
     }
@@ -147,5 +186,21 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
 
     public void setmTasks(List<MTask> mTasks) {
         this.mTasks = mTasks;
+    }
+
+    public void undoDelete() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mTasks.add(recentlyDeletedItemPosition, recentlyDeletedItem);
+                mTaskDatabase.mTaskDAO().insertOnlySingleMTask(recentlyDeletedItem);
+                Bundle data = new Bundle();
+                data.putInt("POSITION", recentlyDeletedItemPosition);
+
+                Message message = mHandler.obtainMessage(1, MainActivity.UNDO_DELETE_ITEM);
+                message.setData(data);
+                message.sendToTarget();
+            }
+        }).start();
     }
 }

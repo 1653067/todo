@@ -19,8 +19,10 @@ public interface MTaskDAO {
     MTask getById(int taskId);
     @Query("SELECT * FROM MTask")
     List<MTask> getAll();
-    @Query("SELECT * FROM MTask WHERE createdOn BETWEEN :start AND :end")
-    List<MTask> getAllByDate(Date start, Date end);
+    @Query("SELECT * FROM MTask WHERE date = :date AND active = :active")
+    List<MTask> getAllByDateAndActive(Date date, boolean active);
+    @Query("SELECT * FROM MTask WHERE date = :date")
+    List<MTask> getAllByDate(Date date);
     @Update
     void updateMTask(MTask task);
     @Delete

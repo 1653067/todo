@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="#00000000">
+
+    <android.support.design.button.MaterialButton
+        android:id="@+id/addBtn"
+        android:layout_width="30dp"
+        android:layout_height="40dp"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="10dp"
+        android:layout_toLeftOf="@+id/checkBox"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:theme="@style/Theme.MaterialComponents.Light"
+        app:backgroundTint="@color/colorAccent"
+        app:cornerRadius="30dp"
+        app:icon="@drawable/ic_add"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="20dp"
+        app:iconTint="#fff" />
+
+</android.support.design.widget.CoordinatorLayout>

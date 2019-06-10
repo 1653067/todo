@@ -15,6 +15,7 @@ public class MTask {
     String name;
     String content;
     boolean active;
+    Date date;
     Date createdOn;
     Date deadline;
 
@@ -91,6 +92,14 @@ public class MTask {
 
     public void setDeadline(Date deadline) {
         this.deadline = deadline;
+    }
+
+    public Date getDate() {
+        return date;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
     }
 
     @Override

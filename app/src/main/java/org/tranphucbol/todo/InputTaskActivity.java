@@ -1,12 +1,14 @@
 package org.tranphucbol.todo;
 
 import android.app.AlarmManager;
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.PendingIntent;
 import android.app.TimePickerDialog;
 import android.arch.persistence.room.PrimaryKey;
 import android.arch.persistence.room.Room;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -19,6 +21,7 @@ import android.view.View;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import org.tranphucbol.todo.Model.MTask;
 
@@ -37,6 +40,7 @@ public class InputTaskActivity extends AppCompatActivity {
     private String time;
     private SimpleDateFormat ft;
     private MTask task;
+    private Date dateCreate;
 
     private static final int BACK = 1;
     private static final int UPDATE = 2;
@@ -84,6 +88,16 @@ public class InputTaskActivity extends AppCompatActivity {
 
         final int taskId = intent.getIntExtra("taskId", -1);
 
+        String dateStr = intent.getStringExtra("DATE");
+        if(dateStr != null) {
+            ft = new SimpleDateFormat("dd-MM-yyyy");
+            try {
+                dateCreate = ft.parse(dateStr);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }
+
         createBtn = findViewById(R.id.createBtn);
         updateBtn = findViewById(R.id.updateTaskBtn);
         deleteBtn = findViewById(R.id.deleteTaskBtn);
@@ -100,6 +114,7 @@ public class InputTaskActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     task = mTaskDatabase.mTaskDAO().getById(taskId);
+                    dateCreate = task.getDate();
                     mHandler.obtainMessage(1, UPDATE).sendToTarget();
                 }
             }).start();
@@ -113,17 +128,22 @@ public class InputTaskActivity extends AppCompatActivity {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
+                            //check if date or time = null -> don't create notification for this task
                             if (date == null || time == null) {
                                 task = new MTask(nameTxt.getText().toString(), noteTxt.getText().toString());
                             } else {
                                 Date deadline;
                                 try {
                                     deadline = ft.parse(date + " " + time);
-                                    task = new MTask(nameTxt.getText().toString(), noteTxt.getText().toString(), deadline);
+                                    if(deadline.before(new Date())) {
+                                        task = new MTask(nameTxt.getText().toString(), noteTxt.getText().toString());
+                                    } else
+                                        task = new MTask(nameTxt.getText().toString(), noteTxt.getText().toString(), deadline);
                                 } catch (ParseException e) {
                                     e.printStackTrace();
                                 }
                             }
+                            task.setDate(dateCreate);
                             long id = mTaskDatabase.mTaskDAO().insertOnlySingleMTask(task);
 
                             createNotification((int) id);
@@ -138,6 +158,7 @@ public class InputTaskActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 final Calendar c = Calendar.getInstance();
+                c.setTime(dateCreate);
                 int mYear = c.get(Calendar.YEAR);
                 int mMonth = c.get(Calendar.MONTH);
                 int mDay = c.get(Calendar.DAY_OF_MONTH);
@@ -207,14 +228,30 @@ public class InputTaskActivity extends AppCompatActivity {
         deleteBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mTaskDatabase.mTaskDAO().deleteMTask(task);
-                        removeNotification(task.getTaskId());
-                        mHandler.obtainMessage(1, BACK).sendToTarget();
+                AlertDialog.Builder builder = new AlertDialog.Builder(InputTaskActivity.this);
+
+                builder.setMessage("Bạn có chắc chắn muốn xóa công việc này không?");
+
+                builder.setPositiveButton("Có", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mTaskDatabase.mTaskDAO().deleteMTask(task);
+                                removeNotification(task.getTaskId());
+                                mHandler.obtainMessage(1, BACK).sendToTarget();
+                            }
+                        }).start();
                     }
-                }).start();
+                });
+                builder.setNegativeButton("Không", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        // User cancelled the dialog
+                    }
+                });
+
+                AlertDialog dialog = builder.create();
+                dialog.show();
             }
         });
     }

@@ -3,10 +3,14 @@ package org.tranphucbol.todo;
 import android.app.DatePickerDialog;
 import android.arch.persistence.room.Room;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
@@ -17,10 +21,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.DatePicker;
+import android.widget.Toast;
+
+import com.danimahardhika.cafebar.CafeBar;
+import com.danimahardhika.cafebar.CafeBarCallback;
+import com.danimahardhika.cafebar.CafeBarTheme;
 
 import org.tranphucbol.todo.Model.MTask;
 
-import java.text.DateFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -39,13 +47,16 @@ public class MainActivity extends AppCompatActivity {
     public static final int REFRESH = 1;
     public static final int TITLE = 2;
     public static final int DELETE_ITEM = 3;
+    public static final int UNDO_DELETE_ITEM = 4;
+    public static final int YESTERDAY = 5;
 
     private String title;
     private Toolbar toolbar;
     private ToDoRecyclerViewAdapter toDoListAdapter;
+    private SimpleDateFormat ft;
 
     Locale locale = new Locale("vi", "VN");
-    DateFormatSymbols dateFormatSymbols = new DateFormatSymbols(locale);
+    private String dateStr;
 
 
     private Handler mHandler = new Handler() {
@@ -62,6 +73,13 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case DELETE_ITEM:
                     toDoListAdapter.notifyItemRemoved(msg.getData().getInt("POSITION"));
+                    showUndoSnackBar();
+                    break;
+                case UNDO_DELETE_ITEM:
+                    toDoListAdapter.notifyItemInserted(msg.getData().getInt("POSITION"));
+                    break;
+                case YESTERDAY:
+                    showYesterdaySnackBar();
                     break;
                 default:
                     break;
@@ -82,8 +100,21 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, InputTaskActivity.class);
-                startActivity(intent);
+                ft.applyPattern("dd-MM-yyyy");
+                try {
+                    Date date = ft.parse(dateStr);
+                    Date current = ft.parse(ft.format(new Date()));
+
+                    if(date.equals(current) || date.after(current)) {
+                        Intent intent = new Intent(MainActivity.this, InputTaskActivity.class);
+                        intent.putExtra("DATE", dateStr);
+                        startActivity(intent);
+                    } else {
+                        Toast.makeText(MainActivity.this, "Bạn không thể tạo thêm công việc trong ngày này", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -101,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
 
         RecyclerView.ItemDecoration itemDecoration = new
                 DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
+
         todoList.addItemDecoration(itemDecoration);
 
         ItemTouchHelper itemTouchHelper = new
@@ -112,16 +144,9 @@ public class MainActivity extends AppCompatActivity {
 
         todoList.setLayoutManager(layoutManager);
 
-        dateFormatSymbols.setWeekdays(new String[]{
-                "Unused",
-                "Chủ nhật",
-                "Thứ hai",
-                "Thứ ba",
-                "Thứ tư",
-                "Thứ năm",
-                "Thứ sáu",
-                "Thứ bảy",
-        });
+        ft = new SimpleDateFormat("dd-MM-yyyy");
+        dateStr = ft.format(new Date());
+
     }
 
     @Override
@@ -130,20 +155,33 @@ public class MainActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                final Calendar c = Calendar.getInstance();
-                SimpleDateFormat ft = new SimpleDateFormat("dd-MM-yyyy", dateFormatSymbols);
-                Date start, end;
                 try {
-                    start = ft.parse(ft.format(new Date()));
-                    c.setTime(start);
-                    c.add(Calendar.MINUTE, 23 * 60 + 59);
-                    end = c.getTime();
-                    tasks = mTaskDatabase.mTaskDAO().getAllByDate(start, end);
+                    ft.applyPattern("dd-MM-yyyy");
+                    Date date = ft.parse(dateStr);
+                    tasks = mTaskDatabase.mTaskDAO().getAllByDate(date);
                     toDoListAdapter.setmTasks(tasks);
-                    ft = new SimpleDateFormat("EEEEE, dd 'tháng' M", dateFormatSymbols);
-                    title = ft.format(new Date());
+                    ft.applyPattern("EEEEE, dd 'tháng' M");
+                    title = ft.format(date);
                     mHandler.obtainMessage(1, TITLE).sendToTarget();
                     mHandler.obtainMessage(1, REFRESH).sendToTarget();
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Calendar c = Calendar.getInstance();
+                ft.applyPattern("dd-MM-yyyy");
+                try {
+                    Date current = ft.parse(ft.format(new Date()));
+                    c.setTime(current);
+                    c.add(Calendar.DATE, -1);
+                    List<MTask> taskYesterdays = mTaskDatabase.mTaskDAO().getAllByDateAndActive(c.getTime(), false);
+                    if(taskYesterdays.size() > 0) {
+                        mHandler.obtainMessage(1, YESTERDAY).sendToTarget();
+                    }
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
@@ -169,25 +207,21 @@ public class MainActivity extends AppCompatActivity {
             int mMonth = c.get(Calendar.MONTH);
             int mDay = c.get(Calendar.DAY_OF_MONTH);
 
-
             DatePickerDialog datePickerDialog = new DatePickerDialog(MainActivity.this,
                     new DatePickerDialog.OnDateSetListener() {
                         @Override
                         public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
-                            String date = String.format("%02d-%02d-%04d", dayOfMonth, monthOfYear + 1, year);
-                            SimpleDateFormat ft = new SimpleDateFormat("dd-MM-yyyy",  dateFormatSymbols);
+                            dateStr = String.format("%02d-%02d-%04d", dayOfMonth, monthOfYear + 1, year);
+                            ft.applyPattern("dd-MM-yyyy");
                             try {
-                                final Date start = ft.parse(date);
-                                c.setTime(start);
-                                c.add(Calendar.MINUTE, 23 * 60 + 59);
-                                final Date end = c.getTime();
+                                final Date date = ft.parse(dateStr);
                                 new Thread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        tasks = mTaskDatabase.mTaskDAO().getAllByDate(start, end);
+                                        tasks = mTaskDatabase.mTaskDAO().getAllByDate(date);
                                         toDoListAdapter.setmTasks(tasks);
-                                        SimpleDateFormat ft = new SimpleDateFormat("EEEEE, dd 'tháng' M", dateFormatSymbols);
-                                        title = ft.format(start);
+                                        ft.applyPattern("EEEEE, dd 'tháng' M");
+                                        title = ft.format(date);
                                         //send message to change subtitle - date
                                         mHandler.obtainMessage(1, TITLE).sendToTarget();
                                         //send message to reload data of date
@@ -204,5 +238,60 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void showUndoSnackBar() {
+        CafeBar.builder(MainActivity.this)
+                .theme(CafeBarTheme.LIGHT)
+                .icon(R.drawable.ic_delete_white_24dp)
+                .content("Đã xóa công việc")
+                .autoDismiss(false)
+                .neutralText("Hoàn tác")
+                .onNeutral(new CafeBarCallback() {
+                    @Override
+                    public void OnClick(CafeBar cafeBar) {
+                        toDoListAdapter.undoDelete();
+                        cafeBar.dismiss();
+                    }
+                })
+                .show();
+    }
+
+    private void showYesterdaySnackBar() {
+        CafeBar.builder(MainActivity.this)
+                .floating(true)
+                .theme(CafeBarTheme.LIGHT)
+                .duration(5000)
+                .content("Bạn còn công việc ngày hôm qua")
+                .neutralText("Thêm")
+                .onNeutral(new CafeBarCallback() {
+                    @Override
+                    public void OnClick(CafeBar cafeBar) {
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Calendar c = Calendar.getInstance();
+                                ft.applyPattern("dd-MM-yyyy");
+                                try {
+                                    Date current = ft.parse(ft.format(new Date()));
+                                    Date yesterday = null;
+                                    c.setTime(current);
+                                    c.add(Calendar.DATE, -1);
+                                    yesterday = c.getTime();
+                                    List<MTask> taskYesterdays = mTaskDatabase.mTaskDAO().getAllByDateAndActive(yesterday, false);
+                                    toDoListAdapter.setmTasks(taskYesterdays);
+                                    mHandler.obtainMessage(1, REFRESH).sendToTarget();
+                                    ft.applyPattern("EEEEE, dd 'tháng' M");
+                                    title = ft.format(yesterday);
+                                    mHandler.obtainMessage(1, TITLE).sendToTarget();
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }).start();
+                        cafeBar.dismiss();
+                    }
+                })
+                .show();
     }
 }

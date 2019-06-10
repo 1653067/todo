@@ -24,30 +24,58 @@
         android:focusableInTouchMode="false"
         />
 
-    <TextView
-        android:id="@+id/taskNameTxtv"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
         android:layout_centerVertical="true"
-        android:text="Task Name"
         android:layout_toRightOf="@id/checkBox"
-        android:focusable="false"
-        android:focusableInTouchMode="false"/>
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/taskNameTxtv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Task Name"
+            android:focusable="false"
+            android:textSize="18dp"
+            android:focusableInTouchMode="false"/>
+        <TextView
+            android:id="@+id/taskTimeTxtv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="20:00"
+            android:textColor="@color/colorAccent"
+            android:textSize="14dp"
+            android:drawableTint="@color/colorAccent"
+            android:drawableLeft="@drawable/ic_notifications_14dp"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            android:layout_below="@id/taskNameTxtv"
+            android:visibility="gone"
+            />
+    </LinearLayout>
+
+
+
 
     <android.support.design.button.MaterialButton
-        android:id="@+id/deleteBtn"
-        android:layout_width="55dp"
-        android:layout_height="wrap_content"
-        android:layout_toLeftOf="@+id/checkBox"
-        app:backgroundTint="#fff"
-        android:layout_marginRight="16dp"
-        android:theme="@style/Theme.MaterialComponents.Light"
-        app:icon="@drawable/ic_delete_24dp"
+        android:id="@+id/addBtn"
+        android:layout_width="30dp"
+        android:layout_height="40dp"
         android:layout_alignParentRight="true"
-        app:iconTint="@color/colorText"
+        android:layout_marginRight="10dp"
+        android:layout_toLeftOf="@+id/checkBox"
         android:focusable="false"
         android:focusableInTouchMode="false"
-        android:visibility="invisible"/>
+        android:theme="@style/Theme.MaterialComponents.Light"
+        android:visibility="invisible"
+        app:backgroundTint="@color/colorAccent"
+        app:cornerRadius="30dp"
+        app:icon="@drawable/ic_add"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="20dp"
+        app:iconTint="#fff" />
 
 </RelativeLayout>
 </android.support.design.widget.CoordinatorLayout>

@@ -65,6 +65,8 @@ public class InputTaskActivity extends AppCompatActivity {
                         String[] d = ft.format(task.getDeadline()).split(" ");
                         dateBtn.setText(d[0]);
                         timeBtn.setText(d[1]);
+                        date = d[0];
+                        time = d[1];
                     }
                     break;
             }
@@ -86,7 +88,7 @@ public class InputTaskActivity extends AppCompatActivity {
                 .build();
         final Intent intent = getIntent();
 
-        final int taskId = intent.getIntExtra("taskId", -1);
+        final int taskId = intent.getIntExtra("TASKID", -1);
 
         String dateStr = intent.getStringExtra("DATE");
         if(dateStr != null) {
@@ -267,7 +269,9 @@ public class InputTaskActivity extends AppCompatActivity {
             AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
             Intent notificationIntent = new Intent(InputTaskActivity.this, AlarmReceiver.class);
-            notificationIntent.putExtra("taskId", id);
+            notificationIntent.putExtra("TASKID", id);
+            notificationIntent.putExtra("NAME", task.getName());
+            notificationIntent.putExtra("CONTENT", task.getContent());
             PendingIntent broadcast = PendingIntent.getBroadcast(InputTaskActivity.this, id, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
             Calendar cal = Calendar.getInstance();
             int sec = (int) (task.getDeadline().getTime() - task.getCreatedOn().getTime()) / 1000;

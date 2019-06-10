@@ -81,7 +81,7 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(context, InputTaskActivity.class);
-                intent.putExtra("taskId", task.getTaskId());
+                intent.putExtra("TASKID", task.getTaskId());
                 context.startActivity(intent);
             }
         });

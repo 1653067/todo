@@ -173,9 +173,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 Calendar c = Calendar.getInstance();
-                ft.applyPattern("dd-MM-yyyy");
+                SimpleDateFormat ftYesterday = new SimpleDateFormat("dd-MM-yyyy");
                 try {
-                    Date current = ft.parse(ft.format(new Date()));
+                    Date current = ftYesterday.parse(ftYesterday.format(new Date()));
                     c.setTime(current);
                     c.add(Calendar.DATE, -1);
                     List<MTask> taskYesterdays = mTaskDatabase.mTaskDAO().getAllByDateAndActive(c.getTime(), false);

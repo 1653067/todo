@@ -18,7 +18,10 @@ public class AlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         Intent notificationIntent = new Intent(context, InputTaskActivity.class);
-        notificationIntent.putExtra("taskId", intent.getIntExtra("taskId", -1));
+        notificationIntent.putExtra("TASKID", intent.getIntExtra("TASKID", -1));
+
+        String name = intent.getStringExtra("NAME");
+        String content = intent.getStringExtra("CONTENT");
 
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
         stackBuilder.addParentStack(InputTaskActivity.class);
@@ -28,9 +31,8 @@ public class AlarmReceiver extends BroadcastReceiver {
 
         Notification.Builder builder = new Notification.Builder(context);
 
-        Notification notification = builder.setContentTitle("To-Do")
-                .setContentText("Bạn có công việc cần hoàn thành")
-                .setTicker("New Message Alert!")
+        Notification notification = builder.setContentTitle(name)
+                .setContentText(content)
                 .setSmallIcon(R.drawable.delivery)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)

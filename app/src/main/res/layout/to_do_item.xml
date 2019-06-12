@@ -55,8 +55,19 @@
             />
     </LinearLayout>
 
-
-
+    <CheckBox
+        android:id="@+id/starCheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:buttonTint="#FFC23D"
+        android:button="@drawable/star_checkbox_drawable"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:layout_marginRight="10dp"
+        android:visibility="gone"
+        />
 
     <android.support.design.button.MaterialButton
         android:id="@+id/addBtn"
@@ -64,11 +75,10 @@
         android:layout_height="40dp"
         android:layout_alignParentRight="true"
         android:layout_marginRight="10dp"
-        android:layout_toLeftOf="@+id/checkBox"
         android:focusable="false"
         android:focusableInTouchMode="false"
         android:theme="@style/Theme.MaterialComponents.Light"
-        android:visibility="invisible"
+        android:visibility="gone"
         app:backgroundTint="@color/colorAccent"
         app:cornerRadius="30dp"
         app:icon="@drawable/ic_add"

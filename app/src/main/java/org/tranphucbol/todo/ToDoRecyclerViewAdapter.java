@@ -21,6 +21,9 @@ import org.tranphucbol.todo.Model.MTask;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
@@ -56,7 +59,7 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
     }
 
     @Override
-    public void onBindViewHolder(RecyclerViewHolder holder, int i) {
+    public void onBindViewHolder(RecyclerViewHolder holder, final int i) {
         final MTask task = mTasks.get(i);
 
         holder.taskNameTxtv.setText(task.getName());
@@ -69,12 +72,8 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
             holder.taskTimeTxtv.setVisibility(View.GONE);
         }
 
-        if(holder.checkBox.isActivated()) {
-            holder.taskNameTxtv.setTypeface(holder.taskNameTxtv.getTypeface(), Typeface.ITALIC);
-        } else {
-            holder.taskNameTxtv.setTypeface(Typeface.DEFAULT);
-        }
         holder.checkBox.setChecked(task.isActive());
+        holder.starCheckBox.setChecked(task.isImportant());
 
         //Set event click for item -> start activity update and remove task
         holder.itemView.setOnClickListener(new View.OnClickListener() {
@@ -102,13 +101,39 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
             }
         });
 
+        holder.starCheckBox.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        //change activate of task
+                        task.setImportant(!task.isImportant());
+                        mTaskDatabase.mTaskDAO().updateMTask(task);
+                        int oldPosition = mTasks.indexOf(task);
+                        sort();
+                        int newPosition = mTasks.indexOf(task);
+                        Message message = mHandler.obtainMessage(1, MainActivity.MOVE_ITEM);
+                        Bundle data = new Bundle();
+                        data.putInt("FROM", oldPosition);
+                        data.putInt("TO", newPosition);
+                        message.setData(data);
+                        message.sendToTarget();
+                    }
+                }).start();
+            }
+        });
+
         try {
             ft.applyPattern("dd-MM-yyyy");
             final Date current = ft.parse(ft.format(new Date()));
-            if(task.getDate().before(current))
+            if(task.getDate().before(current)) {
                 holder.addBtn.setVisibility(View.VISIBLE);
+                holder.starCheckBox.setVisibility(View.GONE);
+            }
             else {
                 holder.addBtn.setVisibility(View.GONE);
+                holder.starCheckBox.setVisibility(View.VISIBLE);
             }
             holder.addBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -119,7 +144,6 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
                             task.setDate(current);
                             mTaskDatabase.mTaskDAO().updateMTask(task);
                             mTasks.remove(task);
-//                            removeNotification(task.getTaskId());
                             mHandler.obtainMessage(1, MainActivity.REFRESH).sendToTarget();
                         }
                     }).start();
@@ -161,7 +185,7 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
     public class RecyclerViewHolder extends RecyclerView.ViewHolder {
         MaterialButton addBtn;
         TextView taskNameTxtv, taskTimeTxtv;
-        CheckBox checkBox;
+        CheckBox checkBox, starCheckBox;
 
         public RecyclerViewHolder(View itemView) {
             super(itemView);
@@ -170,6 +194,7 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
             taskNameTxtv = itemView.findViewById(R.id.taskNameTxtv);
             taskTimeTxtv = itemView.findViewById(R.id.taskTimeTxtv);
             checkBox = itemView.findViewById(R.id.checkBox);
+            starCheckBox = itemView.findViewById(R.id.starCheckBox);
         }
     }
 
@@ -203,4 +228,31 @@ public class ToDoRecyclerViewAdapter extends RecyclerView.Adapter<ToDoRecyclerVi
             }
         }).start();
     }
+
+    public void sort() {
+        Collections.sort(mTasks, comparator);
+    }
+
+    public static Comparator comparator = new Comparator<MTask>() {
+        @Override
+        public int compare(MTask o1, MTask o2) {
+            Date o1Date = o1.getCreatedOn();
+            Date o2Date = o2.getCreatedOn();
+            boolean o1IsImportant = o1.isImportant();
+            boolean o2IsImportant = o2.isImportant();
+
+            if(o1IsImportant == o2IsImportant) {
+                if (o1Date.before(o2Date)) {
+                    return 1;
+                } else if (o1Date.after(o2Date)) {
+                    return -1;
+                }
+            } else if (o1IsImportant) {
+                return -1;
+            } else {
+                return 1;
+            }
+            return 0;
+        }
+    };
 }

@@ -20,12 +20,14 @@ public class MTask {
     Date deadline;
     boolean autoAdd;
     int before;
+    boolean important;
 
     public MTask() {
         this.active = false;
         this.createdOn = new Date();
         this.autoAdd = false;
         this.before = 0;
+        this.important = false;
     }
 
     public MTask(String name) {
@@ -35,6 +37,7 @@ public class MTask {
         this.createdOn = new Date();
         this.autoAdd = false;
         this.before = 0;
+        this.important = false;
     }
 
     public MTask(String name, String content, boolean autoAdd) {
@@ -44,6 +47,7 @@ public class MTask {
         this.createdOn = new Date();
         this.autoAdd = autoAdd;
         this.before = 0;
+        this.important = false;
     }
 
     public MTask(String name, String content, Date deadline, boolean autoAdd) {
@@ -54,6 +58,7 @@ public class MTask {
         this.createdOn = new Date();
         this.autoAdd = autoAdd;
         this.before = 0;
+        this.important = false;
     }
 
     public int getTaskId() {
@@ -122,6 +127,14 @@ public class MTask {
 
     public void setBefore(int before) {
         this.before = before;
+    }
+
+    public boolean isImportant() {
+        return important;
+    }
+
+    public void setImportant(boolean important) {
+        this.important = important;
     }
 
     public void setAutoAdd(boolean autoAdd) {

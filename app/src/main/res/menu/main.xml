@@ -2,10 +2,16 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/action_settings"
+        android:id="@+id/calendar_setting"
         android:orderInCategory="100"
         android:title="Lịch"
         android:iconTint="#fff"
         android:icon="@drawable/ic_date_range_white_24dp"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/important_setting"
+        android:title="Quan trọng" />
+    <item
+        android:id="@+id/done_setting"
+        android:title="Ẩn tác vụ đã hoàn thành" />
 </menu>

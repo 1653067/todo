@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     public static final int DELETE_ITEM = 3;
     public static final int UNDO_DELETE_ITEM = 4;
     public static final int YESTERDAY = 5;
+    public static final int MOVE_ITEM = 6;
 
     private String title;
     private Toolbar toolbar;
@@ -58,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
     Locale locale = new Locale("vi", "VN");
     private String dateStr;
 
+    private boolean isImportant = false;
+    private boolean isDone = false;
 
     private Handler mHandler = new Handler() {
         @Override
@@ -66,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
             Integer code = (Integer) msg.obj;
             switch (code) {
                 case REFRESH:
+                    toDoListAdapter.sort();
                     toDoListAdapter.notifyDataSetChanged();
                     break;
                 case TITLE:
@@ -80,6 +84,9 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case YESTERDAY:
                     showYesterdaySnackBar();
+                    break;
+                case MOVE_ITEM:
+                    toDoListAdapter.notifyItemMoved(msg.getData().getInt("FROM"), msg.getData().getInt("TO"));
                     break;
                 default:
                     break;
@@ -152,67 +159,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                ft.applyPattern("dd-MM-yyyy");
-                try {
-                    Date current = ft.parse(ft.format(new Date()));
-                    List<MTask> taskAuto = mTaskDatabase.mTaskDAO().getAllByDateLessThan(current, false, true);
-
-                    //delete the task have a deadline less than current date
-                    //And update date for tasks have a deadline greater than current date or deadline null
-                    List<MTask> taskUnfinished = new ArrayList<>();
-                    for (MTask task : taskAuto) {
-                        if(task.getDeadline() != null && task.getDeadline().before(current)) {
-                            taskUnfinished.add(task);
-                        } else {
-                            task.setDate(current);
-                        }
-                    }
-                    taskAuto.remove(taskUnfinished);
-
-                    mTaskDatabase.mTaskDAO().updateMTask(taskAuto);
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                ft.applyPattern("dd-MM-yyyy");
-                                Date date = ft.parse(dateStr);
-                                tasks = mTaskDatabase.mTaskDAO().getAllByDate(date);
-                                toDoListAdapter.setmTasks(tasks);
-                                ft.applyPattern("EEEEE, dd 'tháng' M");
-                                title = ft.format(date);
-                                mHandler.obtainMessage(1, TITLE).sendToTarget();
-                                mHandler.obtainMessage(1, REFRESH).sendToTarget();
-                            } catch (ParseException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }).start();
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Calendar c = Calendar.getInstance();
-                SimpleDateFormat ftYesterday = new SimpleDateFormat("dd-MM-yyyy");
-                try {
-                    Date current = ftYesterday.parse(ftYesterday.format(new Date()));
-                    c.setTime(current);
-                    c.add(Calendar.DATE, -1);
-                    List<MTask> taskYesterdays = mTaskDatabase.mTaskDAO().getAllByDateAndActive(c.getTime(), false);
-                    if(taskYesterdays.size() > 0) {
-                        mHandler.obtainMessage(1, YESTERDAY).sendToTarget();
-                    }
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
+        loadTasks();
+        checkTasksOfYesterday();
     }
 
 
@@ -227,7 +175,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        if (id == R.id.action_settings) {
+        if (id == R.id.calendar_setting) {
             final Calendar c = Calendar.getInstance();
             int mYear = c.get(Calendar.YEAR);
             int mMonth = c.get(Calendar.MONTH);
@@ -261,6 +209,37 @@ public class MainActivity extends AppCompatActivity {
                     }, mYear, mMonth, mDay);
             datePickerDialog.show();
             return true;
+        } else if(id == R.id.important_setting) {
+            isImportant = !isImportant;
+            if(isImportant) {
+                List<MTask> notImportant = new ArrayList<>();
+                for (MTask task : tasks) {
+                    if (!task.isImportant()) {
+                        notImportant.add(task);
+                    }
+                }
+                tasks.removeAll(notImportant);
+                toDoListAdapter.notifyDataSetChanged();
+            } else {
+                loadTasks();
+            }
+        } else if(id == R.id.done_setting) {
+            isDone = !isDone;
+            if(isDone) {
+                List<MTask> done = new ArrayList<>();
+                for(MTask task : tasks) {
+                    if(task.isActive()) {
+                        done.add(task);
+                    }
+                }
+                if(done.isEmpty()) {
+                    isDone = false;
+                }
+                tasks.removeAll(done);
+                toDoListAdapter.notifyDataSetChanged();
+            } else {
+                loadTasks();
+            }
         }
 
         return super.onOptionsItemSelected(item);
@@ -319,5 +298,72 @@ public class MainActivity extends AppCompatActivity {
                     }
                 })
                 .show();
+    }
+
+    void loadTasks() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                ft.applyPattern("dd-MM-yyyy");
+                try {
+                    Date current = ft.parse(ft.format(new Date()));
+                    List<MTask> taskAuto = mTaskDatabase.mTaskDAO().getAllByDateLessThan(current, false, true);
+
+                    //delete the task have a deadline less than current date
+                    //And update date for tasks have a deadline greater than current date or deadline null
+                    List<MTask> taskUnfinished = new ArrayList<>();
+                    for (MTask task : taskAuto) {
+                        if(task.getDeadline() != null && task.getDeadline().before(current)) {
+                            taskUnfinished.add(task);
+                        } else {
+                            task.setDate(current);
+                        }
+                    }
+                    taskAuto.remove(taskUnfinished);
+
+                    mTaskDatabase.mTaskDAO().updateMTask(taskAuto);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                ft.applyPattern("dd-MM-yyyy");
+                                Date date = ft.parse(dateStr);
+                                tasks = mTaskDatabase.mTaskDAO().getAllByDate(date);
+                                toDoListAdapter.setmTasks(tasks);
+                                ft.applyPattern("EEEEE, dd 'tháng' M");
+                                title = ft.format(date);
+                                mHandler.obtainMessage(1, TITLE).sendToTarget();
+                                mHandler.obtainMessage(1, REFRESH).sendToTarget();
+                            } catch (ParseException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
+    void checkTasksOfYesterday() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Calendar c = Calendar.getInstance();
+                SimpleDateFormat ftYesterday = new SimpleDateFormat("dd-MM-yyyy");
+                try {
+                    Date current = ftYesterday.parse(ftYesterday.format(new Date()));
+                    c.setTime(current);
+                    c.add(Calendar.DATE, -1);
+                    List<MTask> taskYesterdays = mTaskDatabase.mTaskDAO().getAllByDateAndActive(c.getTime(), false);
+                    if(taskYesterdays.size() > 0) {
+                        mHandler.obtainMessage(1, YESTERDAY).sendToTarget();
+                    }
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 }

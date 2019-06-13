@@ -14,4 +14,10 @@
     <item
         android:id="@+id/done_setting"
         android:title="Ẩn tác vụ đã hoàn thành" />
+    <item
+        android:id="@+id/import_setting"
+        android:title="Khôi phục dữ liệu" />
+    <item
+        android:id="@+id/export_setting"
+        android:title="Sao lưu dữ liệu" />
 </menu>

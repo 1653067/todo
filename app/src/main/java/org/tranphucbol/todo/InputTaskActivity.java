@@ -162,7 +162,8 @@ public class InputTaskActivity extends AppCompatActivity {
 
                             long id = mTaskDatabase.mTaskDAO().insertOnlySingleMTask(task);
 
-                            createNotification((int) id);
+                            task.setTaskId((int)id);
+                            createNotification(getApplicationContext(), task);
                             mHandler.obtainMessage(1, BACK).sendToTarget();
                         }
                     }).start();
@@ -240,8 +241,8 @@ public class InputTaskActivity extends AppCompatActivity {
                         }
 
                         mTaskDatabase.mTaskDAO().updateMTask(task);
-                        removeNotification(task.getTaskId());
-                        createNotification(task.getTaskId());
+                        removeNotification(getApplicationContext(), task.getTaskId());
+                        createNotification(getApplicationContext(), task);
                         mHandler.obtainMessage(1, BACK).sendToTarget();
                     }
                 }).start();
@@ -261,7 +262,7 @@ public class InputTaskActivity extends AppCompatActivity {
                             @Override
                             public void run() {
                                 mTaskDatabase.mTaskDAO().deleteMTask(task);
-                                removeNotification(task.getTaskId());
+                                removeNotification(getApplicationContext(), task.getTaskId());
                                 mHandler.obtainMessage(1, BACK).sendToTarget();
                             }
                         }).start();
@@ -285,17 +286,17 @@ public class InputTaskActivity extends AppCompatActivity {
         return true;
     }
 
-    private void createNotification(int id) {
+    public static void createNotification(Context context, MTask task) {
         if(task.getDeadline() != null) {
-            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 
-            Intent notificationIntent = new Intent(InputTaskActivity.this, AlarmReceiver.class);
-            notificationIntent.putExtra("TASKID", id);
+            Intent notificationIntent = new Intent(context, AlarmReceiver.class);
+            notificationIntent.putExtra("TASKID", task.getTaskId());
             notificationIntent.putExtra("NAME", task.getName());
             notificationIntent.putExtra("CONTENT", task.getContent());
-            PendingIntent broadcast = PendingIntent.getBroadcast(InputTaskActivity.this, id, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            PendingIntent broadcast = PendingIntent.getBroadcast(context, task.getTaskId(), notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
             Calendar cal = Calendar.getInstance();
-            int sec = (int) (task.getDeadline().getTime() - task.getCreatedOn().getTime()) / 1000;
+            int sec = (int) (task.getDeadline().getTime() - new Date().getTime()) / 1000;
             sec -= task.getBefore() * 60;
             if(sec > 0) {
                 cal.add(Calendar.SECOND, sec);
@@ -304,10 +305,10 @@ public class InputTaskActivity extends AppCompatActivity {
         }
     }
 
-    private void removeNotification(int id) {
-        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        Intent notificationIntent = new Intent(InputTaskActivity.this, AlarmReceiver.class);
-        PendingIntent broadcast = PendingIntent.getBroadcast(InputTaskActivity.this, id, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+    public static void removeNotification(Context context, int id) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        Intent notificationIntent = new Intent(context, AlarmReceiver.class);
+        PendingIntent broadcast = PendingIntent.getBroadcast(context, id, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         alarmManager.cancel(broadcast);
     }
 }

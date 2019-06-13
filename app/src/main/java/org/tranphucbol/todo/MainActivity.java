@@ -1,14 +1,17 @@
 package org.tranphucbol.todo;
 
+import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.arch.persistence.room.Room;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -29,6 +32,8 @@ import com.danimahardhika.cafebar.CafeBarTheme;
 
 import org.tranphucbol.todo.Model.MTask;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -50,6 +55,9 @@ public class MainActivity extends AppCompatActivity {
     public static final int UNDO_DELETE_ITEM = 4;
     public static final int YESTERDAY = 5;
     public static final int MOVE_ITEM = 6;
+
+    private static final int READ_REQUEST_CODE = 42;
+    private static final int WRITE_REQUEST_CODE = 43;
 
     private String title;
     private Toolbar toolbar;
@@ -113,9 +121,9 @@ public class MainActivity extends AppCompatActivity {
                     Date current = ft.parse(ft.format(new Date()));
 
 //                    if(date.equals(current) || date.after(current)) {
-                        Intent intent = new Intent(MainActivity.this, InputTaskActivity.class);
-                        intent.putExtra("DATE", dateStr);
-                        startActivity(intent);
+                    Intent intent = new Intent(MainActivity.this, InputTaskActivity.class);
+                    intent.putExtra("DATE", dateStr);
+                    startActivity(intent);
 //                    } else {
 //                        Toast.makeText(MainActivity.this, "Bạn không thể tạo thêm công việc trong ngày này", Toast.LENGTH_SHORT).show();
 //                    }
@@ -209,9 +217,9 @@ public class MainActivity extends AppCompatActivity {
                     }, mYear, mMonth, mDay);
             datePickerDialog.show();
             return true;
-        } else if(id == R.id.important_setting) {
+        } else if (id == R.id.important_setting) {
             isImportant = !isImportant;
-            if(isImportant) {
+            if (isImportant) {
                 List<MTask> notImportant = new ArrayList<>();
                 for (MTask task : tasks) {
                     if (!task.isImportant()) {
@@ -223,16 +231,16 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 loadTasks();
             }
-        } else if(id == R.id.done_setting) {
+        } else if (id == R.id.done_setting) {
             isDone = !isDone;
-            if(isDone) {
+            if (isDone) {
                 List<MTask> done = new ArrayList<>();
-                for(MTask task : tasks) {
-                    if(task.isActive()) {
+                for (MTask task : tasks) {
+                    if (task.isActive()) {
                         done.add(task);
                     }
                 }
-                if(done.isEmpty()) {
+                if (done.isEmpty()) {
                     isDone = false;
                 }
                 tasks.removeAll(done);
@@ -240,6 +248,10 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 loadTasks();
             }
+        } else if (id == R.id.import_setting) {
+            performFileSearch();
+        } else if (id == R.id.export_setting) {
+            createFile("application/json", "todo.json");
         }
 
         return super.onOptionsItemSelected(item);
@@ -250,7 +262,7 @@ public class MainActivity extends AppCompatActivity {
                 .theme(CafeBarTheme.LIGHT)
                 .icon(R.drawable.ic_delete_white_24dp)
                 .content("Đã xóa công việc")
-                .autoDismiss(false)
+                .duration(3000)
                 .neutralText("Hoàn tác")
                 .onNeutral(new CafeBarCallback() {
                     @Override
@@ -313,7 +325,7 @@ public class MainActivity extends AppCompatActivity {
                     //And update date for tasks have a deadline greater than current date or deadline null
                     List<MTask> taskUnfinished = new ArrayList<>();
                     for (MTask task : taskAuto) {
-                        if(task.getDeadline() != null && task.getDeadline().before(current)) {
+                        if (task.getDeadline() != null && task.getDeadline().before(current)) {
                             taskUnfinished.add(task);
                         } else {
                             task.setDate(current);
@@ -357,7 +369,7 @@ public class MainActivity extends AppCompatActivity {
                     c.setTime(current);
                     c.add(Calendar.DATE, -1);
                     List<MTask> taskYesterdays = mTaskDatabase.mTaskDAO().getAllByDateAndActive(c.getTime(), false);
-                    if(taskYesterdays.size() > 0) {
+                    if (taskYesterdays.size() > 0) {
                         mHandler.obtainMessage(1, YESTERDAY).sendToTarget();
                     }
                 } catch (ParseException e) {
@@ -365,5 +377,77 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }).start();
+    }
+
+    private void createFile(String mimeType, String fileName) {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+
+        // Filter to only show results that can be "opened", such as
+        // a file (as opposed to a list of contacts or timezones).
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+        // Create a file with the requested MIME type.
+        intent.setType(mimeType);
+        intent.putExtra(Intent.EXTRA_TITLE, fileName);
+        startActivityForResult(intent, WRITE_REQUEST_CODE);
+    }
+
+    public void performFileSearch() {
+
+        // ACTION_OPEN_DOCUMENT is the intent to choose a file via the system's file
+        // browser.
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+
+        // Filter to only show results that can be "opened", such as a
+        // file (as opposed to a list of contacts or timezones)
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+        // Filter to show only images, using the image MIME data type.
+        // If one wanted to search for ogg vorbis files, the type would be "audio/ogg".
+        // To search for all documents available via installed storage providers,
+        // it would be "*/*".
+        intent.setType("application/json");
+
+        startActivityForResult(intent, READ_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == Activity.RESULT_OK) {
+            switch (requestCode) {
+                case READ_REQUEST_CODE: {
+                    final Uri uri = data.getData();
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            ImportData importData = new ImportData(getApplicationContext());
+                            try {
+                                importData.readData(uri);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            loadTasks();
+                        }
+                    }).start();
+                }
+                break;
+                case WRITE_REQUEST_CODE: {
+                    final Uri uri = data.getData();
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                ExportData exportData = new ExportData(getApplicationContext());
+                                exportData.writeFile(uri);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
+                }
+                break;
+            }
+        }
     }
 }

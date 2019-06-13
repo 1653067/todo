@@ -15,6 +15,8 @@ import java.util.List;
 public interface MTaskDAO {
     @Insert
     long insertOnlySingleMTask(MTask task);
+    @Insert
+    List<Long> insertMTasks(List<MTask> tasks);
     @Query("SELECT * FROM MTask WHERE taskId = :taskId")
     MTask getById(int taskId);
     @Query("SELECT * FROM MTask")

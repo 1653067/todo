@@ -21,6 +21,7 @@ public class MTask {
     boolean autoAdd;
     int before;
     boolean important;
+    Date updatedOn;
 
     public MTask() {
         this.active = false;
@@ -28,6 +29,7 @@ public class MTask {
         this.autoAdd = false;
         this.before = 0;
         this.important = false;
+        this.updatedOn = new Date();
     }
 
     public MTask(String name) {
@@ -38,6 +40,7 @@ public class MTask {
         this.autoAdd = false;
         this.before = 0;
         this.important = false;
+        this.updatedOn = new Date();
     }
 
     public MTask(String name, String content, boolean autoAdd) {
@@ -48,6 +51,7 @@ public class MTask {
         this.autoAdd = autoAdd;
         this.before = 0;
         this.important = false;
+        this.updatedOn = new Date();
     }
 
     public MTask(String name, String content, Date deadline, boolean autoAdd) {
@@ -59,6 +63,7 @@ public class MTask {
         this.autoAdd = autoAdd;
         this.before = 0;
         this.important = false;
+        this.updatedOn = new Date();
     }
 
     public int getTaskId() {
@@ -67,6 +72,7 @@ public class MTask {
 
     public void setTaskId(int taskId) {
         this.taskId = taskId;
+        this.updatedOn = new Date();
     }
 
     public String getName() {
@@ -75,6 +81,7 @@ public class MTask {
 
     public void setName(String name) {
         this.name = name;
+        this.updatedOn = new Date();
     }
 
     public String getContent() {
@@ -83,6 +90,7 @@ public class MTask {
 
     public void setContent(String content) {
         this.content = content;
+        this.updatedOn = new Date();
     }
 
     public boolean isActive() {
@@ -91,6 +99,7 @@ public class MTask {
 
     public void setActive(boolean active) {
         this.active = active;
+        this.updatedOn = new Date();
     }
 
     public Date getCreatedOn() {
@@ -99,6 +108,7 @@ public class MTask {
 
     public void setCreatedOn(Date createdOn) {
         this.createdOn = createdOn;
+        this.updatedOn = new Date();
     }
 
     public Date getDeadline() {
@@ -107,6 +117,7 @@ public class MTask {
 
     public void setDeadline(Date deadline) {
         this.deadline = deadline;
+        this.updatedOn = new Date();
     }
 
     public Date getDate() {
@@ -115,6 +126,7 @@ public class MTask {
 
     public void setDate(Date date) {
         this.date = date;
+        this.updatedOn = new Date();
     }
 
     public boolean isAutoAdd() {
@@ -127,6 +139,7 @@ public class MTask {
 
     public void setBefore(int before) {
         this.before = before;
+        this.updatedOn = new Date();
     }
 
     public boolean isImportant() {
@@ -135,10 +148,26 @@ public class MTask {
 
     public void setImportant(boolean important) {
         this.important = important;
+        this.updatedOn = new Date();
+    }
+
+    public Date getUpdatedOn() {
+        return updatedOn;
+    }
+
+    public void setUpdatedOn(Date updatedOn) {
+        this.updatedOn = updatedOn;
     }
 
     public void setAutoAdd(boolean autoAdd) {
         this.autoAdd = autoAdd;
+        this.updatedOn = new Date();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        MTask mTask = (MTask)obj;
+        return (name.equals(mTask.getName()) && createdOn.equals(mTask.getCreatedOn()));
     }
 
     @Override
